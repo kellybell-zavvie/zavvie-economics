@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>zavvie · Deal Unit Economics</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f14; --surface: #13161e; --surface2: #1a1e2a; --border: #252a38;
+  --accent: #3b82f6; --accent2: #60efb0; --warn: #f59e0b; --danger: #ef4444;
+  --text: #e8eaf0; --muted: #6b7280; --label: #9ca3af; --sidebar-w: 260px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+
+header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; flex-shrink: 0; }
+.logo { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--text); }
+.logo span { color: var(--accent); }
+.tagline { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.btn { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 7px; border: none; cursor: pointer; transition: all 0.15s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #2563eb; }
+.btn-outline { background: transparent; color: var(--label); border: 1px solid var(--border); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-warn { background: transparent; color: var(--warn); border: 1px solid rgba(245,158,11,0.4); }
+.btn-warn:hover { background: rgba(245,158,11,0.1); }
+
+.app-body { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 53px); }
+
+/* SIDEBAR */
+.sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+.sidebar-header { padding: 14px 14px 10px; border-bottom: 1px solid var(--border); }
+.sidebar-section-title { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); margin-bottom: 9px; }
+.upload-area { display: block; border: 1px dashed var(--border); border-radius: 7px; padding: 9px 12px; text-align: center; cursor: pointer; transition: all 0.15s; font-size: 11px; color: var(--muted); }
+.upload-area:hover { border-color: var(--accent); color: var(--accent); }
+.upload-area input { display: none; }
+.sidebar-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+.sidebar-list::-webkit-scrollbar { width: 3px; }
+.sidebar-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.deal-item { padding: 9px 14px; cursor: pointer; transition: background 0.1s; border-left: 2px solid transparent; }
+.deal-item:hover { background: var(--surface2); }
+.deal-item.active { background: rgba(59,130,246,0.08); border-left-color: var(--accent); }
+.deal-item.cmp-sel { background: rgba(96,239,176,0.06); border-left-color: var(--accent2); }
+.di-name { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.3; margin-bottom: 1px; }
+.di-addr { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.di-profit { font-family: 'DM Mono', monospace; font-size: 10px; margin-top: 3px; }
+.sidebar-footer { padding: 10px 14px; border-top: 1px solid var(--border); }
+.cmp-count { font-size: 10px; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 6px; }
+
+/* MAIN */
+.main { flex: 1; overflow-y: auto; }
+.main::-webkit-scrollbar { width: 5px; }
+.main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* EMPTY STATE */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 14px; color: var(--muted); text-align: center; padding: 40px; }
+.empty-icon { font-size: 44px; opacity: 0.3; }
+.empty-title { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--label); }
+.empty-sub { font-size: 12px; line-height: 1.6; max-width: 300px; }
+
+/* REPORT */
+.report { max-width: 1060px; margin: 0 auto; padding: 28px 32px 80px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px; margin-bottom: 18px; }
+.card-title { font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 7px; }
+.card-title::before { content: ''; display: block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+.field-group-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 13px; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field.full { grid-column: 1/-1; }
+label { font-size: 11px; color: var(--label); font-weight: 500; }
+.input-wrap { position: relative; }
+.prefix, .suffix { position: absolute; top: 50%; transform: translateY(-50%); font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); pointer-events: none; }
+.prefix { left: 10px; } .suffix { right: 10px; }
+input[type="number"], input[type="date"], input[type="text"] { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; padding: 8px 11px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; -moz-appearance: textfield; }
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.has-prefix input { padding-left: 24px; } .has-suffix input { padding-right: 28px; }
+input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+input[type="date"] { color-scheme: dark; }
+.field-note { font-size: 10px; color: var(--muted); line-height: 1.4; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+/* P&L METRICS */
+.deal-header h2 { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 14px; line-height: 1.3; }
+.results-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+.metric { background: var(--surface2); padding: 16px; display: flex; flex-direction: column; gap: 4px; }
+.metric-label { font-size: 9px; font-family: 'DM Mono', monospace; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.metric-value { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+.metric-value.positive { color: var(--accent2); } .metric-value.negative { color: var(--danger); } .metric-value.neutral { color: var(--warn); }
+.metric-sub { font-size: 10px; color: var(--muted); }
+.profit-bar-wrap { background: var(--surface2); border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+.profit-bar-label { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; white-space: nowrap; }
+.bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s cubic-bezier(.4,0,.2,1); }
+
+/* BREAKDOWN */
+.breakdown { width: 100%; border-collapse: collapse; font-size: 12px; }
+.breakdown th { text-align: left; font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); padding: 7px 10px; border-bottom: 1px solid var(--border); }
+.breakdown th:last-child, .breakdown td:last-child { text-align: right; }
+.breakdown td { padding: 8px 10px; border-bottom: 1px solid rgba(37,42,56,0.5); color: var(--text); font-family: 'DM Mono', monospace; }
+.breakdown tr:last-child td { border-bottom: none; }
+.row-income td:first-child { color: var(--accent2); } .row-cost td:first-child { color: var(--danger); }
+.breakdown .total-row td { border-top: 2px solid var(--border); font-weight: 600; padding-top: 10px; }
+.badge { display: inline-block; font-size: 9px; font-family: 'DM Mono', monospace; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 5px; border-radius: 3px; margin-left: 5px; vertical-align: middle; }
+.badge-income { background: rgba(96,239,176,0.12); color: var(--accent2); }
+.badge-cost { background: rgba(239,68,68,0.12); color: var(--danger); }
+.badge-neutral { background: rgba(107,114,128,0.15); color: var(--muted); }
+
+/* PAYDOWN */
+.paydown-panel { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.25); border-radius: 10px; padding: 14px 16px; margin-top: 14px; }
+.paydown-title { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--warn); margin-bottom: 11px; display: flex; align-items: center; gap: 7px; }
+
+/* PILLS */
+.info-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; }
+.info-pill-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.info-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.sf-display { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; display: flex; gap: 20px; flex-wrap: wrap; font-family: 'DM Mono', monospace; font-size: 11px; }
+.split-display { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; display: flex; gap: 20px; font-family: 'DM Mono', monospace; font-size: 11px; }
+
+/* COMPARE */
+.compare-view { padding: 28px 28px 80px; max-width: 1400px; margin: 0 auto; }
+.compare-h2 { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--text); margin-bottom: 4px; }
+.compare-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+.compare-wrap { overflow-x: auto; }
+.compare-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.compare-table th { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); padding: 9px 13px; border-bottom: 2px solid var(--border); text-align: right; white-space: nowrap; }
+.compare-table th:first-child { text-align: left; min-width: 160px; }
+.compare-table td { padding: 9px 13px; border-bottom: 1px solid rgba(37,42,56,0.4); font-family: 'DM Mono', monospace; text-align: right; }
+.compare-table td:first-child { text-align: left; color: var(--label); font-size: 11px; }
+.compare-table .sec-hdr td { background: var(--surface2); color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; padding: 5px 13px; }
+.cn { font-size: 11px; font-weight: 600; color: var(--text); max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ca { font-size: 9px; color: var(--muted); max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc { color: var(--accent2) !important; } .nc { color: var(--danger) !important; } .wc { color: var(--warn) !important; }
+.best { background: rgba(96,239,176,0.05); }
+
+/* STATS DASHBOARD */
+.stats-view { padding: 28px 32px 80px; max-width: 1200px; margin: 0 auto; }
+.stats-hero { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+.stats-hero .metric { padding: 20px; }
+.stats-section-title { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 7px; }
+.stats-section-title::before { content:''; display:block; width:5px; height:5px; border-radius:50%; background:var(--accent); }
+.stats-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.stats-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.stats-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+
+/* BAR CHART */
+.bar-chart { display: flex; flex-direction: column; gap: 8px; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-row-label { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--label); width: 90px; flex-shrink: 0; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-row-label.wide { width: 130px; }
+.bar-outer { flex: 1; height: 22px; background: var(--surface2); border-radius: 4px; overflow: hidden; position: relative; }
+.bar-inner { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-family: 'DM Mono', monospace; font-size: 10px; color: var(--bg); font-weight: 500; min-width: 2px; transition: width 0.5s cubic-bezier(.4,0,.2,1); white-space: nowrap; }
+.bar-val { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--label); width: 80px; text-align: right; flex-shrink: 0; }
+
+/* TREND TABLE */
+.trend-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.trend-table th { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: right; }
+.trend-table th:first-child { text-align: left; }
+.trend-table td { padding: 8px 10px; border-bottom: 1px solid rgba(37,42,56,0.4); font-family: 'DM Mono', monospace; font-size: 11px; text-align: right; }
+.trend-table td:first-child { text-align: left; color: var(--label); }
+.trend-table tr:last-child td { border-bottom: none; }
+
+/* SCATTER / MINI-CHART */
+.mini-line { position: relative; height: 80px; }
+.mini-line canvas { position: absolute; top: 0; left: 0; }
+
+/* STAT HIGHLIGHT CARDS */
+.stat-highlight-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 18px; }
+.sh-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 14px; }
+.sh-label { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 5px; }
+.sh-val { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; }
+.sh-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* STATE MAP TABLE */
+.state-table { width: 100%; border-collapse: collapse; }
+.state-table th { font-family: 'DM Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: right; }
+.state-table th:first-child { text-align: left; }
+.state-table td { padding: 8px 10px; border-bottom: 1px solid rgba(37,42,56,0.4); font-family: 'DM Mono', monospace; font-size: 11px; text-align: right; }
+.state-table td:first-child { text-align: left; color: var(--label); font-weight: 600; }
+.state-table tr:last-child td { border-bottom: none; }
+
+/* SIDEBAR NAV */
+.sidebar-nav { padding: 10px 14px 6px; border-bottom: 1px solid var(--border); }
+.nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--label); transition: all 0.12s; margin-bottom: 2px; }
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(59,130,246,0.1); color: var(--accent); }
+.nav-icon { font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">zavvie <span>·</span> Unit Economics</div>
+  <div class="tagline">Deal Profitability Platform</div>
+  <div class="header-actions">
+    <button class="btn btn-warn" id="compareBtn" onclick="showCompare()" style="display:none">Compare Selected</button>
+    <button class="btn btn-outline" id="downloadBtn" onclick="downloadPDF()" style="display:none">↓ Download PDF</button>
+    <button class="btn btn-outline" onclick="addNewDeal()">+ New Deal</button>
+  </div>
+</header>
+
+<div class="app-body">
+  <div class="sidebar">
+    <div class="sidebar-nav">
+      <div class="nav-item active" id="nav-stats" onclick="showStats()">
+        <span class="nav-icon">📊</span> Portfolio Stats
+      </div>
+    </div>
+    <div class="sidebar-header">
+      <div class="sidebar-section-title">Properties</div>
+      <label class="upload-area">
+        <input type="file" accept=".csv" onchange="loadCSV(event)">
+        ↑ Import CSV to add deals
+      </label>
+    </div>
+    <div class="sidebar-list" id="sidebarList"></div>
+    <div class="sidebar-footer">
+      <div class="cmp-count" id="cmpCount">Select deals to compare</div>
+      <button class="btn btn-outline" style="width:100%;font-size:11px" onclick="toggleCmpMode()" id="cmpModeBtn">Enable Compare Mode</button>
+    </div>
+  </div>
+
+  <div class="main" id="mainContent">
+    <div class="empty-state">
+      <div class="empty-icon">🏠</div>
+      <div class="empty-title">Loading deals…</div>
+      <div class="empty-sub">The 17 deals from your CSV are being loaded.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────
+let deals = [];
+let activeId = null;
+let cmpMode = false;
+let cmpIds = new Set();
+
+// ── FORMAT HELPERS ────────────────────────────────────────
+const fmt = n => {
+  if (n == null || isNaN(n)) return '—';
+  const s = Math.abs(n).toLocaleString('en-US', {maximumFractionDigits:0});
+  return (n < 0 ? '($' : '$') + s + (n < 0 ? ')' : '');
+};
+const fmt2 = n => {
+  if (n == null || isNaN(n)) return '—';
+  const s = Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return (n < 0 ? '($' : '$') + s + (n < 0 ? ')' : '');
+};
+const fmtPct = n => (n == null || isNaN(n) || !isFinite(n)) ? '—' : n.toFixed(1) + '%';
+const days = (a, b) => {
+  if (!a || !b) return 0;
+  const d = Math.round((new Date(b) - new Date(a)) / 86400000);
+  return d > 0 ? d : 0;
+};
+const addD = (s, n) => {
+  if (!s) return '';
+  const d = new Date(s); d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+};
+const earlier = (a, b) => { if (!a) return b; if (!b) return a; return a <= b ? a : b; };
+const parseMon = s => parseFloat(String(s || '').replace(/[$, ]/g,'')) || 0;
+const parseDt = s => {
+  if (!s) return '';
+  const p = s.trim().split('/');
+  if (p.length === 3) {
+    let [m, d, y] = p;
+    if (y.length === 2) y = '20' + y;
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+  return s.trim();
+};
+
+// ── COMPUTE ───────────────────────────────────────────────
+function compute(d) {
+  const loan = d.loanAmount || 0;
+  const locPct = d.locSplitPct || 80, mPct = d.mezzSplitPct || 20;
+  const locAmt = loan * locPct / 100, mAmt = loan * mPct / 100;
+  const fbRate = d.firstBankRate || 0, mRate = d.mezzRate || 12;
+  const dep = d.depositFee || 0, sf = d.serviceFeeTotal || 0;
+  const daily = d.clientDaily || 0;
+  const disc = d.clientDiscount || 0, add = d.additionalClientCosts || 0;
+  const brk = d.brokerShare || 0, lo = d.loShare || 0;
+
+  const loc = d.locDate || '', pur = d.purchaseDate || '';
+  const refi = d.refiDate || '', poff = d.payoffDate || '', pd = d.paydownDate || '';
+
+  const clientDays_ = days(pur, refi);
+  const tailDays_   = days(refi, poff);
+  const totalDays_  = days(loc, poff);
+
+  const pdBeforeRefi   = pd && refi   && pd < refi;
+  const pdBeforePayoff = pd && poff   && pd < poff;
+
+  const fbEnd   = earlier(poff, pd);
+  const fbDays_ = days(loc, fbEnd);
+  const mP1End  = earlier(refi, pd);
+  const mP1Days_= days(pur, mP1End);
+  const mP2Days_= pdBeforeRefi ? days(addD(pd, 1), refi) : 0;
+
+  const sfRem   = sf - dep;
+  const intRev  = daily * clientDays_;
+  const totRev  = sf + intRev + add - disc;
+
+  const fbCost  = locAmt * (fbRate/100) * (fbDays_/365);
+  const mC1     = mAmt   * (mRate/100)  * (mP1Days_/365);
+  const mC2     = pdBeforeRefi ? loan * (12/100) * (mP2Days_/365) : 0;
+  const mCost   = mC1 + mC2;
+  const totCost = fbCost + mCost + brk + lo;
+
+  const profit  = totRev - totCost;
+  const margin  = totRev > 0 ? profit/totRev*100 : 0;
+  const dSpread = totalDays_ > 0 ? profit/totalDays_ : 0;
+  const aYield  = loan > 0 && totalDays_ > 0 ? profit/loan*(365/totalDays_)*100 : 0;
+
+  return {
+    loan, locAmt, mAmt, locPct, mPct, fbRate, mRate,
+    dep, sf, sfRem, daily, disc, add, brk, lo,
+    loc, pur, refi, poff, pd,
+    clientDays: clientDays_, tailDays: tailDays_, totalDays: totalDays_,
+    pdBeforeRefi, pdBeforePayoff, fbEnd, fbDays: fbDays_, mP1Days: mP1Days_, mP2Days: mP2Days_,
+    intRev, totRev, fbCost, mC1, mC2, mCost, totCost,
+    profit, margin, dSpread, aYield
+  };
+}
+
+// ── SIDEBAR ───────────────────────────────────────────────
+function renderSidebar() {
+  const list = document.getElementById('sidebarList');
+  if (!deals.length) { list.innerHTML = '<div style="padding:16px 14px;font-size:11px;color:var(--muted)">No deals. Import CSV or add new.</div>'; return; }
+  list.innerHTML = deals.map(d => {
+    const c = compute(d);
+    const isAct = d.id === activeId, isCmp = cmpIds.has(d.id);
+    const cls = isAct ? 'deal-item active' : isCmp ? 'deal-item cmp-sel' : 'deal-item';
+    const pc = c.profit > 0 ? 'var(--accent2)' : c.profit < 0 ? 'var(--danger)' : 'var(--muted)';
+    const nm = d.dealName.length > 30 ? d.dealName.slice(0,28)+'…' : d.dealName;
+    const ad = (d.address||'').length > 34 ? d.address.slice(0,32)+'…' : (d.address||'—');
+    return `<div class="${cls}" onclick="handleClick('${d.id}')">
+      <div class="di-name">${nm}</div>
+      <div class="di-addr">${ad}</div>
+      ${c.profit !== 0 ? `<div class="di-profit" style="color:${pc}">${fmt(c.profit)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const cntEl = document.getElementById('cmpCount');
+  const cmpBtn = document.getElementById('compareBtn');
+  if (cmpMode) {
+    cntEl.textContent = cmpIds.size ? `${cmpIds.size} selected` : 'Click deals to select';
+    cmpBtn.style.display = cmpIds.size >= 2 ? 'block' : 'none';
+  } else {
+    cntEl.textContent = 'Select deals to compare';
+    cmpBtn.style.display = 'none';
+  }
+}
+
+function handleClick(id) {
+  if (cmpMode) { cmpIds.has(id) ? cmpIds.delete(id) : cmpIds.add(id); renderSidebar(); }
+  else selectDeal(id);
+}
+
+function selectDeal(id) {
+  activeId = id;
+  const statsNav = document.getElementById('nav-stats');
+  if (statsNav) statsNav.classList.remove('active');
+  renderSidebar();
+  const d = deals.find(x => x.id === id);
+  if (d) renderReport(d);
+  const dlBtn = document.getElementById('downloadBtn');
+  if (dlBtn) dlBtn.style.display = 'block';
+}
+
+function addNewDeal() {
+  const d = { id:'d_'+Date.now(), dealName:'New Deal', address:'', purchasePrice:0, loanAmount:0, clientDaily:0, locDate:'', purchaseDate:'', refiDate:'', payoffDate:'', paydownDate:'', serviceFeeTotal:0, depositFee:0, firstBankRate:6.5, locSplitPct:80, mezzSplitPct:20, mezzRate:12, brokerShare:0, loShare:0, additionalClientCosts:0, clientDiscount:0 };
+  deals.push(d);
+  renderSidebar();
+  selectDeal(d.id);
+}
+
+function toggleCmpMode() {
+  cmpMode = !cmpMode; cmpIds.clear();
+  const btn = document.getElementById('cmpModeBtn');
+  btn.textContent = cmpMode ? 'Exit Compare Mode' : 'Enable Compare Mode';
+  btn.style.borderColor = cmpMode ? 'var(--accent2)' : '';
+  btn.style.color = cmpMode ? 'var(--accent2)' : '';
+  renderSidebar();
+  if (!cmpMode && activeId) selectDeal(activeId);
+}
+
+function showCompare() {
+  const sel = deals.filter(d => cmpIds.has(d.id));
+  if (sel.length >= 2) renderCompare(sel);
+}
+
+// ── FIELD UPDATE ──────────────────────────────────────────
+function upd(id, field, val) {
+  const d = deals.find(x => x.id === id);
+  if (!d) return;
+  const nums = ['loanAmount','purchasePrice','clientDaily','serviceFeeTotal','depositFee','firstBankRate','locSplitPct','mezzSplitPct','mezzRate','brokerShare','loShare','additionalClientCosts','clientDiscount'];
+  d[field] = nums.includes(field) ? (parseFloat(val)||0) : val;
+
+  if (field === 'purchaseDate') {
+    d.locDate = val ? addD(val,-1) : '';
+    const el = document.getElementById(`f_locDate_${id}`); if (el) el.value = d.locDate;
+    d.paydownDate = d.locDate ? addD(d.locDate,180) : '';
+    const el2 = document.getElementById(`f_paydownDate_${id}`); if (el2) el2.value = d.paydownDate;
+  }
+  if (field === 'locDate') {
+    d.paydownDate = val ? addD(val,180) : '';
+    const el = document.getElementById(`f_paydownDate_${id}`); if (el) el.value = d.paydownDate;
+  }
+  if (field === 'locSplitPct') {
+    d.mezzSplitPct = Math.max(0,100-d.locSplitPct);
+    const el = document.getElementById(`f_mezzSplitPct_${id}`); if (el) el.value = d.mezzSplitPct;
+  }
+  if (field === 'mezzSplitPct') {
+    d.locSplitPct = Math.max(0,100-d.mezzSplitPct);
+    const el = document.getElementById(`f_locSplitPct_${id}`); if (el) el.value = d.locSplitPct;
+  }
+  refreshResults(id);
+  if (field === 'dealName' || field === 'address') renderSidebar();
+}
+
+// ── REFRESH RESULTS ───────────────────────────────────────
+function refreshResults(id) {
+  const d = deals.find(x => x.id === id);
+  if (!d) return;
+  const c = compute(d);
+  const S = (eid, v) => { const el=document.getElementById(eid); if(el) el.textContent=v; };
+  const C = (eid, cls) => { const el=document.getElementById(eid); if(el) el.className=cls; };
+
+  // Header
+  const hEl = document.getElementById(`dh_${id}`);
+  if (hEl) hEl.innerHTML = (d.dealName||'New Deal') + (d.address ? ` <span style="color:var(--muted);font-size:15px;font-weight:400"> · ${d.address}</span>` : '');
+
+  S(`rv_${id}`, fmt(c.totRev));
+  S(`rc_${id}`, fmt(c.totCost));
+  S(`rp_${id}`, fmt(c.profit));
+  C(`rp_${id}`, 'metric-value '+(c.profit>0?'positive':c.profit<0?'negative':''));
+  S(`rm_${id}`, `Gross margin: ${fmtPct(c.margin)}`);
+  S(`rd_${id}`, c.totalDays>0?c.totalDays+'d':'—');
+  S(`rds_${id}`, c.totalDays>0?fmt(c.dSpread)+'/day':'—');
+  C(`rds_${id}`, 'metric-value '+(c.dSpread>0?'positive':c.dSpread<0?'negative':''));
+  S(`ry_${id}`, c.totalDays>0?fmtPct(c.aYield):'—');
+  C(`ry_${id}`, 'metric-value '+(c.aYield>0?'positive':c.aYield<0?'negative':''));
+
+  const bar = document.getElementById(`bar_${id}`);
+  if (bar) { bar.style.width=Math.min(Math.max(c.margin,0),100)+'%'; bar.style.background=c.profit>0?'var(--accent2)':'var(--danger)'; }
+  S(`barpct_${id}`, fmtPct(c.margin));
+
+  const sfd = document.getElementById(`sfd_${id}`);
+  if (sfd) {
+    sfd.style.display = (c.sf>0||c.dep>0) ? 'flex' : 'none';
+    S(`sft_${id}`,fmt(c.sf)); S(`sfdep_${id}`,fmt(c.dep)); S(`sfrem_${id}`,fmt(Math.max(c.sfRem,0)));
+  }
+  S(`la_${id}`, fmt(c.locAmt)); S(`ma_${id}`, fmt(c.mAmt));
+
+  const pdi = document.getElementById(`pdi_${id}`);
+  if (pdi) {
+    pdi.style.display = d.paydownDate ? 'block' : 'none';
+    if (d.paydownDate) {
+      S(`pdp1_${id}`, `FB: ${c.fbDays}d | Mezz 20%: ${c.mP1Days}d`);
+      S(`pdp2_${id}`, c.mP2Days>0?c.mP2Days+'d':'None');
+      const wEl = document.getElementById(`pdw_${id}`); if (wEl) wEl.style.display=(c.pdBeforeRefi||c.pdBeforePayoff)?'block':'none';
+    }
+  }
+  S(`pc_${id}`, c.clientDays>0?`Client: ${c.clientDays}d (Purchase→Refi)`:'Client: enter dates');
+  S(`pf_${id}`, c.fbDays>0?`First Bank: ${c.fbDays}d (LOC→${c.fbEnd===d.paydownDate?'Paydown':'Payoff'})`:'First Bank: enter dates');
+  S(`pm_${id}`, c.mP1Days>0?`Mezz P1: ${c.mP1Days}d${c.mP2Days>0?' · P2: '+c.mP2Days+'d':''}`:'Mezz: enter dates');
+  S(`pt_${id}`, c.tailDays>0?`⚠ Tail: ${c.tailDays}d`:'No tail');
+
+  renderBD(id, c, d);
+  renderSidebar();
+}
+
+function renderBD(id, c, d) {
+  const tb = document.getElementById(`bd_${id}`);
+  if (!tb) return;
+  const row = (lbl,basis,amt,inc,warn) => {
+    const cl=inc?'row-income':'row-cost', bg=inc?'<span class="badge badge-income">Income</span>':'<span class="badge badge-cost">Cost</span>';
+    const col=inc?'var(--accent2)':'var(--danger)';
+    const wt=warn?`<br><span style="color:var(--warn);font-size:9px">⚠ ${warn}</span>`:'';
+    return `<tr class="${cl}"><td>${lbl}${bg}${wt}</td><td style="color:var(--muted);font-size:10px">${inc?'Revenue':'Cost'}</td><td style="color:var(--muted);font-size:10px">${basis}</td><td style="color:${col}">${fmt(amt)}</td></tr>`;
+  };
+  const sub = (lbl,basis,amt,col) =>
+    `<tr><td style="color:var(--muted);padding-left:22px;font-size:11px">↳ ${lbl}</td><td></td><td style="color:var(--muted);font-size:10px">${basis}</td><td style="color:${col};font-size:11px">${fmt(amt)}</td></tr>`;
+
+  let h='';
+  const sfPct = c.loan>0 ? fmtPct(c.sf/c.loan*100) : '—';
+  h+=row('PB Service Fee',`${sfPct} × ${fmt(c.loan)}`,c.sf,true);
+  h+=sub('New Home Deposit (upfront)','Collected at purchase',c.dep,'var(--accent)');
+  h+=sub('Remainder at closing','Collected at refi',Math.max(c.sfRem,0),'var(--accent)');
+  h+=row('Client Daily Interest',`${fmt2(c.daily)}/day × ${c.clientDays}d`,c.intRev,true);
+  if (c.add>0) h+=row('Additional Costs to Client','Extended hold or penalty',c.add,true);
+  if (c.disc>0) h+=row('Discount to Client','Flat reduction',c.disc,false);
+  const fbLbl = c.pdBeforePayoff?'FB Paydown':'Payoff';
+  h+=row(`First Bank LOC Interest (${fmtPct(c.locPct)} of loan)`,`${c.fbRate}%/yr × ${c.fbDays}d × ${fmt(c.locAmt)} (LOC→${fbLbl})`,c.fbCost,false, c.tailDays>0&&!c.pdBeforePayoff?`Incl. ${c.tailDays}d tail after Refi`:null);
+  const mP1Lbl = c.pdBeforeRefi?'FB Paydown':'Refi';
+  h+=row(`Mezzanine Interest — Phase 1 (${fmtPct(c.mPct)} of loan)`,`${c.mRate}%/yr × ${c.mP1Days}d × ${fmt(c.mAmt)} (Purchase→${mP1Lbl})`,c.mC1,false);
+  if (c.pdBeforeRefi && c.mP2Days>0) h+=row('Mezzanine Interest — Phase 2 (100% @ 12%)',`12%/yr × ${c.mP2Days}d × ${fmt(c.loan)} (Day after Paydown→Refi)`,c.mC2,false,'First Bank paid off — full loan at Mezz rate');
+  if (c.brk>0) h+=row('Broker Partner Revenue Share','Flat payout',c.brk,false);
+  if (c.lo>0)  h+=row('Loan Officer Revenue Share','Flat payout',c.lo,false);
+  h+=`<tr class="total-row"><td colspan="3" style="color:var(--label)">Net Profit <span class="badge badge-neutral">${fmtPct(c.margin)} margin</span></td><td style="color:${c.profit>=0?'var(--accent2)':'var(--danger)'}">${fmt(c.profit)}</td></tr>`;
+  tb.innerHTML = h;
+}
+
+// ── RENDER REPORT ─────────────────────────────────────────
+function renderReport(d) {
+  const id = d.id, c = compute(d);
+  const fi = (fld,lbl,val,type,pre,suf,note,full) => {
+    const pc=pre?'has-prefix':suf?'has-suffix':'', pfx=pre?`<span class="prefix">${pre}</span>`:'', sfx=suf?`<span class="suffix">${suf}</span>`:'';
+    const inp = type==='date' ? `<input type="date" id="f_${fld}_${id}" value="${val||''}" oninput="upd('${id}','${fld}',this.value)" style="color-scheme:dark">`
+      : type==='text' ? `<input type="text" id="f_${fld}_${id}" value="${val||''}" oninput="upd('${id}','${fld}',this.value)">`
+      : `<input type="number" id="f_${fld}_${id}" value="${val||''}" oninput="upd('${id}','${fld}',this.value)" step="any">`;
+    return `<div class="field${full?' full':''}"><label>${lbl}</label><div class="input-wrap ${pc}">${pfx}${inp}${sfx}</div>${note?`<div class="field-note">${note}</div>`:''}</div>`;
+  };
+
+  const profCls = c.profit>0?'positive':c.profit<0?'negative':'';
+  const dsCls   = c.dSpread>0?'positive':c.dSpread<0?'negative':'';
+  const yCls    = c.aYield>0?'positive':c.aYield<0?'negative':'';
+  const barPct  = Math.min(Math.max(c.margin,0),100);
+
+  document.getElementById('mainContent').innerHTML = `<div class="report" id="rep_${id}">
+
+  <!-- DEAL DETAILS -->
+  <div class="card">
+    <div class="card-title">Deal Details</div>
+    <div class="field-group">
+      ${fi('dealName','Client Name',d.dealName,'text','','','',false)}
+      ${fi('address','Deal Address',d.address,'text','','','',false)}
+      ${fi('purchasePrice','Home Purchase Price',d.purchasePrice||'','number','$','','',false)}
+      ${fi('loanAmount','Loan Amount',d.loanAmount||'','number','$','','',false)}
+    </div>
+  </div>
+
+  <!-- P&L SUMMARY -->
+  <div class="card">
+    <div class="deal-header">
+      <div class="card-title">P&amp;L Summary</div>
+      <h2 id="dh_${id}">${d.dealName||'New Deal'}${d.address?` <span style="color:var(--muted);font-size:15px;font-weight:400"> · ${d.address}</span>`:''}</h2>
+    </div>
+    <div class="results-grid">
+      <div class="metric"><div class="metric-label">Total Revenue</div><div class="metric-value positive" id="rv_${id}">${fmt(c.totRev)}</div><div class="metric-sub">All client-paid fees</div></div>
+      <div class="metric"><div class="metric-label">Total Costs</div><div class="metric-value negative" id="rc_${id}">${fmt(c.totCost)}</div><div class="metric-sub">Interest &amp; funding costs</div></div>
+      <div class="metric"><div class="metric-label">Net Profit</div><div class="metric-value ${profCls}" id="rp_${id}">${fmt(c.profit)}</div><div class="metric-sub" id="rm_${id}">Gross margin: ${fmtPct(c.margin)}</div></div>
+      <div class="metric"><div class="metric-label">Hold Period</div><div class="metric-value neutral" id="rd_${id}">${c.totalDays>0?c.totalDays+'d':'—'}</div><div class="metric-sub">LOC Advance → Payoff</div></div>
+      <div class="metric"><div class="metric-label">Daily Spread</div><div class="metric-value ${dsCls}" id="rds_${id}">${c.totalDays>0?fmt(c.dSpread)+'/day':'—'}</div><div class="metric-sub">Net profit per day</div></div>
+      <div class="metric"><div class="metric-label">Annualized Yield</div><div class="metric-value ${yCls}" id="ry_${id}">${c.totalDays>0?fmtPct(c.aYield):'—'}</div><div class="metric-sub">Net profit / loan × 365/days</div></div>
+    </div>
+    <div class="profit-bar-wrap">
+      <span class="profit-bar-label">Margin</span>
+      <div class="bar-track"><div class="bar-fill" id="bar_${id}" style="width:${barPct}%;background:${c.profit>0?'var(--accent2)':'var(--danger)'}"></div></div>
+      <span class="profit-bar-label" id="barpct_${id}">${fmtPct(c.margin)}</span>
+    </div>
+    <hr class="divider">
+    <table class="breakdown"><thead><tr><th>Line Item</th><th>Type</th><th>Basis</th><th>Amount</th></tr></thead><tbody id="bd_${id}"></tbody></table>
+  </div>
+
+  <!-- KEY DATES -->
+  <div class="card">
+    <div class="card-title">Key Dates</div>
+    <div class="field-group-4">
+      ${fi('locDate','LOC Advance Date',d.locDate,'date','','','Auto-set 1 day before Cash Purchase.',false)}
+      ${fi('purchaseDate','Cash Purchase Date',d.purchaseDate,'date','','','Mezz funding deployed. Client daily interest starts.',false)}
+      ${fi('refiDate','Refi Date',d.refiDate,'date','','','Loan closes. Daily interest &amp; Mezz stop.',false)}
+      ${fi('payoffDate','Payoff Date',d.payoffDate,'date','','','Funds received. First Bank LOC repaid.',false)}
+    </div>
+    <div class="paydown-panel">
+      <div class="paydown-title"><span style="width:6px;height:6px;border-radius:50%;background:var(--warn);display:inline-block;flex-shrink:0"></span>First Bank Paydown Requirement</div>
+      <div class="field-group" style="grid-template-columns:1fr 2fr;align-items:start">
+        <div class="field">
+          <label>First Bank Required Paydown Date</label>
+          <input type="date" id="f_paydownDate_${id}" value="${d.paydownDate||''}" oninput="upd('${id}','paydownDate',this.value)" style="color-scheme:dark">
+          <div class="field-note">Default: 180 days after LOC Advance. After this date, 100% of loan at 12% Mezz rate.</div>
+        </div>
+        <div id="pdi_${id}" style="display:${d.paydownDate?'block':'none'};background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.9">
+          <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <span style="color:var(--muted)">Phase 1: <span id="pdp1_${id}" style="color:var(--accent)">FB: ${c.fbDays}d | Mezz 20%: ${c.mP1Days}d</span></span>
+            <span style="color:var(--muted)">Phase 2: <span id="pdp2_${id}" style="color:var(--warn)">${c.mP2Days>0?c.mP2Days+'d':'None'}</span></span>
+          </div>
+          <div id="pdw_${id}" style="display:${(c.pdBeforeRefi||c.pdBeforePayoff)?'block':'none'};margin-top:5px;color:var(--warn);font-size:10px">⚠ Deal extends past FB paydown — full loan converting to 12% Mezzanine.</div>
+        </div>
+      </div>
+    </div>
+    <div class="info-pill-row">
+      <span class="info-pill"><span class="info-dot" style="background:var(--accent2)"></span><span id="pc_${id}">${c.clientDays>0?`Client: ${c.clientDays}d (Purchase→Refi)`:'Client: enter dates'}</span></span>
+      <span class="info-pill"><span class="info-dot" style="background:var(--accent)"></span><span id="pf_${id}">${c.fbDays>0?`First Bank: ${c.fbDays}d`:'First Bank: enter dates'}</span></span>
+      <span class="info-pill"><span class="info-dot" style="background:var(--warn)"></span><span id="pm_${id}">${c.mP1Days>0?`Mezz P1: ${c.mP1Days}d`:'Mezz: enter dates'}</span></span>
+      <span class="info-pill"><span class="info-dot" style="background:var(--danger)"></span><span id="pt_${id}">${c.tailDays>0?`⚠ Tail: ${c.tailDays}d`:'No tail'}</span></span>
+    </div>
+  </div>
+
+  <!-- REVENUE INPUTS -->
+  <div class="card">
+    <div class="card-title">Revenue Inputs</div>
+    <div class="field-group">
+      ${fi('serviceFeeTotal','PB Service Fee (total $)',d.serviceFeeTotal||'','number','$','','Total fee charged to client. Source: HubSpot.',false)}
+      ${fi('depositFee','New Home Deposit (portion of PB Service Fee)',d.depositFee != null ? d.depositFee : 0,'number','$','','Paid upfront at purchase.',false)}
+    </div>
+    <div class="sf-display" id="sfd_${id}" style="display:${c.sf>0||c.dep>0?'flex':'none'};margin-top:10px">
+      <span style="color:var(--muted)">Total PB Service Fee: <span id="sft_${id}" style="color:var(--accent2);font-weight:500">${fmt(c.sf)}</span></span>
+      <span style="color:var(--muted)">Deposit (upfront): <span id="sfdep_${id}" style="color:var(--accent)">${fmt(c.dep)}</span></span>
+      <span style="color:var(--muted)">Remainder at closing: <span id="sfrem_${id}" style="color:var(--accent)">${fmt(Math.max(c.sfRem,0))}</span></span>
+    </div>
+    <hr class="divider">
+    <div class="field-group">
+      ${fi('clientDaily','Daily Interest Charged to Client ($/day)',d.clientDaily||'','number','$','','Flat dollar per day (Purchase → Refi).',false)}
+      ${fi('additionalClientCosts','Additional Costs to Client',d.additionalClientCosts||'','number','$','','Extended hold penalty, etc.',false)}
+      ${fi('clientDiscount','Discount to Client',d.clientDiscount||'','number','$','','Flat reduction off total owed.','full')}
+    </div>
+  </div>
+
+  <!-- COST INPUTS -->
+  <div class="card">
+    <div class="card-title">Cost Inputs</div>
+    <div class="field-group">
+      ${fi('firstBankRate','First Bank LOC Rate (annual %)',d.firstBankRate,'number','','% /yr','LOC amount (LOC Advance → earlier of Payoff or FB Paydown).',false)}
+      <div class="field"></div>
+      ${fi('locSplitPct','First Bank LOC Split',d.locSplitPct,'number','','%','Default 80%. Auto-syncs.',false)}
+      ${fi('mezzSplitPct','Mezzanine Split',d.mezzSplitPct,'number','','%','Default 20%. Auto-syncs.',false)}
+    </div>
+    <div class="split-display" style="margin:10px 0 4px">
+      <span style="color:var(--muted)">First Bank LOC: <span id="la_${id}" style="color:var(--accent)">${fmt(c.locAmt)}</span></span>
+      <span style="color:var(--muted)">Mezzanine: <span id="ma_${id}" style="color:var(--warn)">${fmt(c.mAmt)}</span></span>
+    </div>
+    <hr class="divider">
+    <div class="field-group">
+      ${fi('mezzRate','Mezzanine Rate (annual %)',d.mezzRate,'number','','% /yr','Typically 12%. Charged on Mezz amount (Purchase → earlier of Refi or FB Paydown).',false)}
+      <div class="field"></div>
+      ${fi('brokerShare','Broker Partner Revenue Share',d.brokerShare||'','number','$','','Flat payout (if applicable).',false)}
+      ${fi('loShare','Loan Officer Revenue Share',d.loShare||'','number','$','','Flat payout (if applicable).',false)}
+    </div>
+  </div>
+
+  </div>`;
+
+  renderBD(id, c, d);
+}
+
+// ── COMPARE ───────────────────────────────────────────────
+function renderCompare(sel) {
+  const cx = sel.map(d => ({ d, c: compute(d) }));
+  const profits = cx.map(x => x.c.profit);
+  const margins = cx.map(x => x.c.margin);
+  const yields  = cx.map(x => x.c.aYield);
+  const costs   = cx.map(x => x.c.totCost);
+  const bProfit = Math.max(...profits), bMargin = Math.max(...margins), bYield = Math.max(...yields), lCost = Math.min(...costs);
+
+  const heads = cx.map(x => `<th><div class="cn">${x.d.dealName}</div><div class="ca">${x.d.address||''}</div></th>`).join('');
+
+  const mr = (lbl, vals, fn, best, isBig=true) => {
+    const cells = vals.map(v => {
+      const isBest = isBig ? v===best : v===best;
+      const cc = v>0?'pc':v<0?'nc':'';
+      return `<td class="${cc}${isBest?' best':''}">${fn(v)}</td>`;
+    }).join('');
+    return `<tr><td>${lbl}</td>${cells}</tr>`;
+  };
+
+  document.getElementById('mainContent').innerHTML = `<div class="compare-view">
+    <div class="compare-h2">Deal Comparison</div>
+    <div class="compare-sub">${sel.length} deals · <a href="#" onclick="exitCmp()" style="color:var(--accent);text-decoration:none">← Back</a></div>
+    <div class="compare-wrap"><table class="compare-table">
+      <thead><tr><th>Metric</th>${heads}</tr></thead>
+      <tbody>
+        <tr class="sec-hdr"><td colspan="${sel.length+1}">Deal Info</td></tr>
+        <tr><td>Loan Amount</td>${cx.map(x=>`<td>${fmt(x.c.loan)}</td>`).join('')}</tr>
+        <tr><td>Hold Period</td>${cx.map(x=>`<td>${x.c.totalDays>0?x.c.totalDays+'d':'—'}</td>`).join('')}</tr>
+        <tr class="sec-hdr"><td colspan="${sel.length+1}">Revenue</td></tr>
+        ${mr('PB Service Fee', cx.map(x=>x.c.sf), fmt, Math.max(...cx.map(x=>x.c.sf)))}
+        ${mr('Client Daily Interest', cx.map(x=>x.c.intRev), fmt, Math.max(...cx.map(x=>x.c.intRev)))}
+        ${mr('Total Revenue', cx.map(x=>x.c.totRev), fmt, Math.max(...cx.map(x=>x.c.totRev)))}
+        <tr class="sec-hdr"><td colspan="${sel.length+1}">Costs</td></tr>
+        ${mr('First Bank LOC Interest', cx.map(x=>x.c.fbCost), fmt, lCost, false)}
+        ${mr('Mezzanine Interest', cx.map(x=>x.c.mCost), fmt, lCost, false)}
+        ${mr('Total Costs', costs, fmt, lCost, false)}
+        <tr class="sec-hdr"><td colspan="${sel.length+1}">Profitability</td></tr>
+        ${mr('Net Profit', profits, fmt, bProfit)}
+        ${mr('Gross Margin', margins, fmtPct, bMargin)}
+        ${mr('Daily Spread', cx.map(x=>x.c.dSpread), v=>fmt(v)+'/day', Math.max(...cx.map(x=>x.c.dSpread)))}
+        ${mr('Annualized Yield', yields, fmtPct, bYield)}
+      </tbody>
+    </table></div>
+  </div>`;
+}
+
+function exitCmp() {
+  if (activeId) selectDeal(activeId);
+  else document.getElementById('mainContent').innerHTML = '<div class="empty-state"><div class="empty-icon">🏠</div><div class="empty-title">Select a deal</div></div>';
+}
+
+// ── CSV LOAD ──────────────────────────────────────────────
+function loadCSV(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const rows = e.target.result.trim().split('\n');
+    const hdrs = parseRow(rows[0]).map(h => h.trim().toLowerCase());
+    const nd = [];
+    for (let i=1;i<rows.length;i++) {
+      if (!rows[i].trim()) continue;
+      const cols = parseRow(rows[i]);
+      const g = k => { const idx=hdrs.indexOf(k); return idx>=0?(cols[idx]||'').trim():''; };
+      const pur = parseDt(g('cash purchase date'));
+      const loc = pur ? addD(pur,-1) : '';
+      nd.push({
+        id:'dcsv_'+Date.now()+'_'+i, dealName:g('deal name'), address:g('address'),
+        purchasePrice:parseMon(g('purchase price')), loanAmount:parseMon(g('loan amount')),
+        clientDaily:parseFloat(g('daily interest charge'))||160,
+        locDate:loc, purchaseDate:pur, refiDate:parseDt(g('refi date')), payoffDate:parseDt(g('payoff date')),
+        paydownDate:loc?addD(loc,180):'', serviceFeeTotal:parseMon(g('program revenue')),
+        depositFee:parseMon(g('program deposit')), firstBankRate:parseFloat(g('first bank loc rate'))||6.5,
+        locSplitPct:parseFloat(g('first bank loc spit')||g('first bank loc split'))||80,
+        mezzSplitPct:parseFloat(g('mezzanine split'))||20,
+        mezzRate:12, brokerShare:0, loShare:0, additionalClientCosts:0, clientDiscount:0,
+      });
+    }
+    deals = [...deals, ...nd];
+    renderSidebar();
+    if (nd.length) selectDeal(nd[0].id);
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function parseRow(row) {
+  const r=[]; let cur='', inQ=false;
+  for (const ch of row) {
+    if (ch==='"') inQ=!inQ;
+    else if (ch===','&&!inQ) { r.push(cur.trim()); cur=''; }
+    else cur+=ch;
+  }
+  r.push(cur.trim()); return r;
+}
+
+// ── INIT FROM EMBEDDED DATA ───────────────────────────────
+(function init() {
+  const raw = [
+    ['Collective Offers - Gibor - 3302','766 S Poplar St Denver CO, 80224',1030000,1015600,215.64,'12/23/24','4/9/25','4/14/25',19296.4,7.75,80,20,0],
+    ['Collective Offers - Bowman - 3504','36 Junction Way Winter Park CO, 80482',437500,415625,85.40,'1/6/25','4/14/25','4/18/25',8728.13,7.5,80,20,0],
+    ['zavvie Cash Advantage - Cao - 4040','1646 Harris Ct Erie CO, 80516',1275000,1020000,209.59,'3/19/25','4/18/25','4/23/25',7650,7.5,80,20,0],
+    ['Cash Advantage+ - Staska - 3950','1633 Parkway Ave Shakopee MN, 55379',415000,415000,85.27,'3/28/25','4/18/25','4/23/25',2697.5,7.5,70,30,0],
+    ['Alliance Offers powered by zavvie - Vela - 3552','19901 County Road 41.7, Weston CO, 81091',325000,281084,57.76,'1/23/25','4/21/25','4/25/25',5902.76,7.5,80,20,0],
+    ['Collective Offers - Pulciani - 3735','752 Sawdust Dr, Brighton, CO 80601',554990,527241,108.34,'2/27/25','4/30/25','5/6/25',10017.58,7.5,80,20,0],
+    ['Artisan Cash Buyer - Mora & Candelaria - 2972','7390 Dover Street, Arvada, CO 80005',815000,783750,171.78,'12/13/24','5/2/25','5/7/25',16458.75,7.5,80,20,0],
+    ['Cash Advantage+ - Cousins - Jefferson and Dantas - 4255','3837 30th Ave S, Minneapolis, MN 55406',320000,304000,62.47,'3/31/25','5/2/25','5/8/25',2280,7.5,70,30,0],
+    ['Collective Offers - Moss - 3410','3833 57th St Boulder CO, 80301',1610000,1288000,273.48,'1/13/25','5/8/25','5/13/25',6440,7.5,76,24,0],
+    ['Cutler Cash Advantage - Abner - 3368','7412 Busey Road NW Canal Winchester, OH 43110',565000,536750,113.97,'12/9/24','5/9/25','5/14/25',10198.25,7.5,70,30,0],
+    ['Luminate Power Buyer - Greek - 4338','3916 147th Ave NE, Lake Stevens, WA 98258',785000,745750,153.24,'4/10/25','5/19/25','5/23/25',11186.25,7.5,70,30,0],
+    ['Mason Mac - Young - 2947','4234 Tyler St NE, Columbia Heights, MN 55421',290000,275500,56.61,'5/9/25','6/6/25','6/9/25',5234.5,7.5,70,30,0],
+    ['Artisan Cash Buyer - Olivia Morales - 4383','13434 W 62nd Place, Arvada CO, 80004',863500,820325,168.56,'4/23/25','7/9/25','7/14/25',15586.18,7.5,80,20,0],
+    ['AFN Cash Advantage - Hitchcock - 3958','137 Alpharetta Ct Conway SC, 29526',485000,435000,89.38,'3/25/25','7/23/25','7/28/25',6525,7.5,70,30,0],
+    ['Pros Cash Advantage - Smith - 7993','6094 S Emporia Ct, Englewood, CO 80111',925000,687600,85.40,'2/27/26','3/20/26','3/25/26',13064.4,7.5,80,20,0],
+    ['Artisan Cash Buyer - Keelan/Mojden - 6790','7782 E 131st Pl, Thornton, CO 80602',709000,673550,124.56,'2/13/26','3/27/26','4/1/26',12797.45,6.75,80,20,0],
+    ['Cutler Cash Advantage - McLaughlin - 7530','4101 Fohl St SW Canton OH, 44706',335000,331650,61.33,'1/30/26','4/6/26','4/10/26',6301.35,6.75,70,30,0],
+    ['Pros Cash Advantage - Felker - 7610','45886 Cottonwood Hills Dr Parker CO, 80138',894000,885060,163.68,'1/27/26','3/20/26','3/25/26',16816.14,6.75,80,20,0],
+    ['Collective Offers - May - 7118','322 W Harper St, Louisville, CO 80027',650000,637000,122.16,'12/12/25','1/23/26','1/28/26',12103,7.5,80,20,0],
+    ['zavvie Cash Advantage (Luminate) - Gaeleigh & Madsen - 6991','15675 Flackwood Way, Apple Valley, MN 55124',339900,322905,61.92,'11/26/25','1/14/26','1/15/26',6135.19,7,70,30,0],
+    ['zavvie Cash Advantage (Luminate) - Allen - Combs 6882','2211 Erie Ave, Middletown, OH 45042',130000,123500,23.68,'11/26/25','3/9/26','3/13/26',2346.5,7,70,30,0],
+    ['AFN Cash Advantage - Clark - 6706','125 Gavin Hill Ct. Aynor SC, 29511',306000,258000,49.48,'11/24/25','4/6/26','4/10/26',4902,7,70,30,0],
+    ['CashReady - Gardner - 6662','31366 Burn Lane Evergreen CO, 80439',1509000,1433550,284.75,'11/7/25','1/26/26','1/30/26',27237.45,7,80,20,0],
+    ['zavvie Cash Advantage (Luminate) - Hintermeister - Vielguth - 6255','5487 Butternut Cir, Minnetonka, MN 55343',475000,451250,92.72,'9/29/25','5/14/26','5/18/26',8573.75,7.5,70,30,0],
+    ['zavvie Cash Advantage - Mace - 6223','9870 Foxhurst Ct Blaine WA, 98230',1099000,1044050,214.53,'9/12/25','4/3/26','4/8/26',19836.95,7.5,70,30,0],
+    ['PenTrust Cash Advantage - Pyatt - 5995','1423 Tweed Street Colorado Springs CO, 80909',540000,506630,104.10,'9/12/25','11/5/25','11/10/25',9625.97,7.5,80,20,0],
+    ['zavvie Cash Advantage - Meza-Karchere - 6118','2540 Poplar Street, Denver, CO 80207',640000,634500,130.38,'9/10/25','11/21/25','11/26/25',12055.5,7.5,80,20,0],
+  ];
+  deals = raw.map((r,i) => {
+    const pur = parseDt(r[5]), loc = pur ? addD(pur,-1) : '';
+    return {
+      id:'d0_'+i, dealName:r[0], address:r[1], purchasePrice:r[2], loanAmount:r[3], clientDaily:r[4],
+      locDate:loc, purchaseDate:pur, refiDate:parseDt(r[6]), payoffDate:parseDt(r[7]),
+      paydownDate:loc?addD(loc,180):'', serviceFeeTotal:r[8],
+      depositFee:(r[12] != null ? r[12] : 0), firstBankRate:r[9], locSplitPct:r[10], mezzSplitPct:r[11],
+      mezzRate:12, brokerShare:0, loShare:0, additionalClientCosts:0, clientDiscount:0,
+    };
+  });
+  renderSidebar();
+  showStats();
+})();
+
+// ── NAV HELPERS ───────────────────────────────────────────
+function setActiveNav(id) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+  // deactivate deal items when on stats
+  if (id === 'nav-stats') {
+    activeId = null;
+    renderSidebar();
+  }
+}
+
+// ── SHOW STATS ────────────────────────────────────────────
+function showStats() {
+  setActiveNav('nav-stats');
+  renderStats();
+  const dlBtn = document.getElementById('downloadBtn');
+  if (dlBtn) dlBtn.style.display = 'none';
+}
+
+// ── EXTRACT STATE FROM ADDRESS ────────────────────────────
+function getState(address) {
+  if (!address) return 'Unknown';
+  // Try "City ST, ZIPCODE" pattern
+  const m = address.match(/,\s*([A-Z]{2})[,\s]/);
+  if (m) return m[1];
+  // Try end of string
+  const m2 = address.match(/\b([A-Z]{2})\s*\d{5}/);
+  if (m2) return m2[1];
+  // Try two-letter state at end
+  const m3 = address.match(/\b([A-Z]{2})\s*$/);
+  if (m3) return m3[1];
+  return 'Unknown';
+}
+
+function getMonthKey(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return null;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function getMonthLabel(key) {
+  if (!key) return '—';
+  const [y, m] = key.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[parseInt(m)-1] + ' ' + y.slice(2);
+}
+
+// ── RENDER STATS PAGE ─────────────────────────────────────
+function renderStats() {
+  if (!deals.length) {
+    document.getElementById('mainContent').innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No deals loaded</div><div class="empty-sub">Import a CSV to see portfolio stats.</div></div>';
+    return;
+  }
+
+  const all = deals.map(d => ({ d, c: compute(d) }));
+  const n = all.length;
+
+  // ── PORTFOLIO AVERAGES ────────────────────────────────────
+  const avg = arr => arr.reduce((a,b) => a+b, 0) / arr.length;
+  const sum = arr => arr.reduce((a,b) => a+b, 0);
+  const profits    = all.map(x => x.c.profit);
+  const revenues   = all.map(x => x.c.totRev);
+  const costs      = all.map(x => x.c.totCost);
+  const margins    = all.map(x => x.c.margin);
+  const yields     = all.map(x => x.c.aYield);
+  const holdDays   = all.map(x => x.c.totalDays).filter(v => v > 0);
+  const dSpreads   = all.map(x => x.c.dSpread);
+  const loans      = all.map(x => x.c.loan);
+
+  const avgProfit  = avg(profits);
+  const avgRev     = avg(revenues);
+  const avgCost    = avg(costs);
+  const avgMargin  = avg(margins);
+  const avgYield   = avg(yields.filter(y => isFinite(y)));
+  const avgHold    = holdDays.length ? avg(holdDays) : 0;
+  const avgDSpread = avg(dSpreads);
+  const avgLoan    = avg(loans);
+  const totalProfit = sum(profits);
+  const totalRev   = sum(revenues);
+
+  const best  = all.reduce((a,b) => b.c.profit > a.c.profit ? b : a);
+  const worst = all.reduce((a,b) => b.c.profit < a.c.profit ? b : a);
+  const fastest = all.filter(x => x.c.totalDays > 0).reduce((a,b) => b.c.totalDays < a.c.totalDays ? b : a);
+  const highestYield = all.filter(x => isFinite(x.c.aYield)).reduce((a,b) => b.c.aYield > a.c.aYield ? b : a);
+  const profitCount = profits.filter(p => p > 0).length;
+
+  // ── MONTHLY TRENDS (by Cash Purchase Date) ────────────────
+  const monthMap = {};
+  all.forEach(x => {
+    const mk = getMonthKey(x.d.purchaseDate);
+    if (!mk) return;
+    if (!monthMap[mk]) monthMap[mk] = { deals:0, profit:0, revenue:0, cost:0, margin:[], hold:[], yield:[] };
+    monthMap[mk].deals++;
+    monthMap[mk].profit += x.c.profit;
+    monthMap[mk].revenue += x.c.totRev;
+    monthMap[mk].cost += x.c.totCost;
+    monthMap[mk].margin.push(x.c.margin);
+    if (x.c.totalDays > 0) monthMap[mk].hold.push(x.c.totalDays);
+    if (isFinite(x.c.aYield)) monthMap[mk].yield.push(x.c.aYield);
+  });
+  const months = Object.keys(monthMap).sort();
+
+  // ── STATE STATS ───────────────────────────────────────────
+  const stateMap = {};
+  all.forEach(x => {
+    const st = getState(x.d.address);
+    if (!stateMap[st]) stateMap[st] = { deals:0, profit:0, revenue:0, cost:0, hold:[] };
+    stateMap[st].deals++;
+    stateMap[st].profit += x.c.profit;
+    stateMap[st].revenue += x.c.totRev;
+    stateMap[st].cost += x.c.totCost;
+    if (x.c.totalDays > 0) stateMap[st].hold.push(x.c.totalDays);
+  });
+  const states = Object.keys(stateMap).sort((a,b) => stateMap[b].profit/stateMap[b].deals - stateMap[a].profit/stateMap[a].deals);
+
+  // ── PROGRAM TYPE STATS ────────────────────────────────────
+  const programMap = {};
+  all.forEach(x => {
+    const prog = (x.d.dealName.split(' - ')[0] || 'Unknown').trim();
+    if (!programMap[prog]) programMap[prog] = { deals:0, profit:0, revenue:0, hold:[] };
+    programMap[prog].deals++;
+    programMap[prog].profit += x.c.profit;
+    programMap[prog].revenue += x.c.totRev;
+    if (x.c.totalDays > 0) programMap[prog].hold.push(x.c.totalDays);
+  });
+  const programs = Object.keys(programMap).sort((a,b) => programMap[b].profit/programMap[b].deals - programMap[a].profit/programMap[a].deals);
+
+  // ── LOAN SIZE BUCKETS ─────────────────────────────────────
+  const buckets = { '<$300k':[], '$300k–$500k':[], '$500k–$800k':[], '$800k–$1.2M':[], '>$1.2M':[] };
+  all.forEach(x => {
+    const l = x.c.loan;
+    if (l < 300000) buckets['<$300k'].push(x.c.profit);
+    else if (l < 500000) buckets['$300k–$500k'].push(x.c.profit);
+    else if (l < 800000) buckets['$500k–$800k'].push(x.c.profit);
+    else if (l < 1200000) buckets['$800k–$1.2M'].push(x.c.profit);
+    else buckets['>$1.2M'].push(x.c.profit);
+  });
+
+  // ── HOLD PERIOD BUCKETS ───────────────────────────────────
+  const holdBuckets = { '<30d':[], '30–60d':[], '60–90d':[], '90–120d':[], '>120d':[] };
+  all.forEach(x => {
+    const h = x.c.totalDays;
+    if (!h) return;
+    if (h < 30) holdBuckets['<30d'].push(x.c.profit);
+    else if (h < 60) holdBuckets['30–60d'].push(x.c.profit);
+    else if (h < 90) holdBuckets['60–90d'].push(x.c.profit);
+    else if (h < 120) holdBuckets['90–120d'].push(x.c.profit);
+    else holdBuckets['>120d'].push(x.c.profit);
+  });
+
+  // ── HELPERS for bar charts ────────────────────────────────
+  const barChart = (items, maxVal, colorFn, labelWidth='90px') => {
+    return items.map(([label, val]) => {
+      const pct = maxVal > 0 ? Math.max(0, (val/maxVal)*100) : 0;
+      const color = colorFn(val);
+      const showVal = fmt(val);
+      return `<div class="bar-row">
+        <div class="bar-row-label" style="width:${labelWidth}">${label}</div>
+        <div class="bar-outer">
+          <div class="bar-inner" style="width:${pct}%;background:${color}">${pct>15?showVal:''}</div>
+        </div>
+        <div class="bar-val">${pct<=15?showVal:''}</div>
+      </div>`;
+    }).join('');
+  };
+
+  const profitColor = v => v > 0 ? 'var(--accent2)' : 'var(--danger)';
+
+  // Monthly profit bars
+  const mProfits = months.map(mk => [getMonthLabel(mk), monthMap[mk].profit]);
+  const maxMP = Math.max(...mProfits.map(x => Math.abs(x[1])), 1);
+
+  // State bars
+  const sBars = states.map(st => [st, stateMap[st].profit / stateMap[st].deals]);
+  const maxSP = Math.max(...sBars.map(x => Math.abs(x[1])), 1);
+
+  // Program bars
+  const pBars = programs.map(p => [p.length > 18 ? p.slice(0,16)+'…' : p, programMap[p].profit / programMap[p].deals]);
+  const maxPP = Math.max(...pBars.map(x => Math.abs(x[1])), 1);
+
+  // Loan bucket bars
+  const lBars = Object.entries(buckets).map(([k,v]) => [k, v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0]);
+  const maxLB = Math.max(...lBars.map(x => Math.abs(x[1])), 1);
+
+  // Hold bucket bars
+  const hBars = Object.entries(holdBuckets).map(([k,v]) => [k, v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0]);
+  const maxHB = Math.max(...hBars.map(x => Math.abs(x[1])), 1);
+
+  // Monthly trend table
+  const monthTrendRows = months.map(mk => {
+    const m = monthMap[mk];
+    const ap = m.profit / m.deals;
+    const am = m.margin.reduce((a,b)=>a+b,0)/m.margin.length;
+    const ah = m.hold.length ? m.hold.reduce((a,b)=>a+b,0)/m.hold.length : 0;
+    const ay = m.yield.length ? m.yield.reduce((a,b)=>a+b,0)/m.yield.length : 0;
+    const pc = ap >= 0 ? 'var(--accent2)' : 'var(--danger)';
+    return `<tr>
+      <td>${getMonthLabel(mk)}</td>
+      <td>${m.deals}</td>
+      <td style="color:${pc}">${fmt(ap)}</td>
+      <td>${fmtPct(am)}</td>
+      <td>${ah > 0 ? Math.round(ah)+'d' : '—'}</td>
+      <td style="color:var(--accent)">${fmtPct(ay)}</td>
+      <td style="color:${m.profit>=0?'var(--accent2)':'var(--danger)'}">${fmt(m.profit)}</td>
+    </tr>`;
+  }).join('');
+
+  // State detail table
+  const stateRows = states.map(st => {
+    const s = stateMap[st];
+    const ap = s.profit / s.deals;
+    const ah = s.hold.length ? s.hold.reduce((a,b)=>a+b,0)/s.hold.length : 0;
+    const ar = s.revenue / s.deals;
+    const pc = ap >= 0 ? 'var(--accent2)' : 'var(--danger)';
+    return `<tr>
+      <td>${st}</td>
+      <td>${s.deals}</td>
+      <td style="color:${pc}">${fmt(ap)}</td>
+      <td>${fmt(ar)}</td>
+      <td>${fmt(s.profit)}</td>
+      <td>${ah > 0 ? Math.round(ah)+'d' : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('mainContent').innerHTML = `
+  <div class="stats-view">
+
+    <!-- PAGE TITLE -->
+    <div style="margin-bottom:22px">
+      <h2 style="font-family:'Playfair Display',serif;font-size:26px;color:var(--text);margin-bottom:4px">Portfolio Analytics</h2>
+      <p style="font-size:12px;color:var(--muted)">${n} deals · All calculations live from current deal data</p>
+    </div>
+
+    <!-- HERO METRICS -->
+    <div class="stats-hero">
+      <div class="metric">
+        <div class="metric-label">Total Portfolio Profit</div>
+        <div class="metric-value ${totalProfit>0?'positive':'negative'}">${fmt(totalProfit)}</div>
+        <div class="metric-sub">Across all ${n} deals</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Avg Net Profit / Deal</div>
+        <div class="metric-value ${avgProfit>0?'positive':'negative'}">${fmt(avgProfit)}</div>
+        <div class="metric-sub">${profitCount} of ${n} deals profitable</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Avg Gross Margin</div>
+        <div class="metric-value neutral">${fmtPct(avgMargin)}</div>
+        <div class="metric-sub">Revenue − costs / revenue</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Avg Annualized Yield</div>
+        <div class="metric-value positive">${fmtPct(avgYield)}</div>
+        <div class="metric-sub">Net profit / loan × 365/days</div>
+      </div>
+    </div>
+
+    <!-- HIGHLIGHT CARDS -->
+    <div class="stat-highlight-grid">
+      <div class="sh-card">
+        <div class="sh-label">Avg Total Revenue</div>
+        <div class="sh-val" style="color:var(--accent2)">${fmt(avgRev)}</div>
+        <div class="sh-sub">Per deal</div>
+      </div>
+      <div class="sh-card">
+        <div class="sh-label">Avg Total Costs</div>
+        <div class="sh-val" style="color:var(--danger)">${fmt(avgCost)}</div>
+        <div class="sh-sub">Per deal</div>
+      </div>
+      <div class="sh-card">
+        <div class="sh-label">Avg Daily Spread</div>
+        <div class="sh-val" style="color:var(--accent)">${fmt(avgDSpread)}</div>
+        <div class="sh-sub">Net profit per hold day</div>
+      </div>
+      <div class="sh-card">
+        <div class="sh-label">Avg Hold Period</div>
+        <div class="sh-val" style="color:var(--warn)">${Math.round(avgHold)}d</div>
+        <div class="sh-sub">LOC Advance to Payoff</div>
+      </div>
+      <div class="sh-card">
+        <div class="sh-label">Avg Loan Amount</div>
+        <div class="sh-val" style="color:var(--text)">${fmt(avgLoan)}</div>
+        <div class="sh-sub">Per deal</div>
+      </div>
+      <div class="sh-card">
+        <div class="sh-label">Total Revenue</div>
+        <div class="sh-val" style="color:var(--accent2)">${fmt(totalRev)}</div>
+        <div class="sh-sub">All deals combined</div>
+      </div>
+    </div>
+
+    <!-- NOTABLE DEALS -->
+    <div class="stats-grid-3" style="margin-bottom:18px">
+      <div class="sh-card" style="border-color:rgba(96,239,176,0.2)">
+        <div class="sh-label" style="color:var(--accent2)">🏆 Best Deal</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin:4px 0">${best.d.dealName.split(' - ').slice(0,2).join(' - ')}</div>
+        <div class="sh-val" style="color:var(--accent2);font-size:18px">${fmt(best.c.profit)}</div>
+        <div class="sh-sub">${fmtPct(best.c.margin)} margin · ${best.c.totalDays}d hold</div>
+      </div>
+      <div class="sh-card" style="border-color:rgba(59,130,246,0.2)">
+        <div class="sh-label" style="color:var(--accent)">⚡ Highest Yield</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin:4px 0">${highestYield.d.dealName.split(' - ').slice(0,2).join(' - ')}</div>
+        <div class="sh-val" style="color:var(--accent);font-size:18px">${fmtPct(highestYield.c.aYield)}</div>
+        <div class="sh-sub">${fmt(highestYield.c.profit)} profit · ${highestYield.c.totalDays}d hold</div>
+      </div>
+      <div class="sh-card" style="border-color:rgba(245,158,11,0.2)">
+        <div class="sh-label" style="color:var(--warn)">🚀 Fastest Close</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin:4px 0">${fastest.d.dealName.split(' - ').slice(0,2).join(' - ')}</div>
+        <div class="sh-val" style="color:var(--warn);font-size:18px">${fastest.c.totalDays}d</div>
+        <div class="sh-sub">${fmt(fastest.c.profit)} profit · ${fmtPct(fastest.c.margin)} margin</div>
+      </div>
+    </div>
+
+    <!-- MONTHLY TREND TABLE -->
+    <div class="stats-card" style="margin-bottom:18px">
+      <div class="stats-section-title">Monthly Trends — by Cash Purchase Date</div>
+      <div style="overflow-x:auto">
+        <table class="trend-table">
+          <thead><tr>
+            <th style="text-align:left">Month</th>
+            <th>Deals</th>
+            <th>Avg Profit</th>
+            <th>Avg Margin</th>
+            <th>Avg Hold</th>
+            <th>Avg Yield</th>
+            <th>Total Profit</th>
+          </tr></thead>
+          <tbody>${monthTrendRows}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MONTHLY PROFIT BARS + HOLD TREND -->
+    <div class="stats-grid-2">
+      <div class="stats-card">
+        <div class="stats-section-title">Total Profit by Purchase Month</div>
+        <div class="bar-chart">${barChart(mProfits, maxMP, profitColor, '55px')}</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-section-title">Avg Net Profit by Hold Period</div>
+        <div class="bar-chart">${barChart(hBars, maxHB, profitColor, '65px')}</div>
+        <div style="margin-top:10px;font-size:10px;color:var(--muted)">Shorter holds tend to produce higher annualized yields even with lower absolute profit.</div>
+      </div>
+    </div>
+
+    <!-- STATE STATS -->
+    <div class="stats-card" style="margin-bottom:18px">
+      <div class="stats-section-title">Average Net Profit by State</div>
+      <div class="stats-grid-2" style="margin-bottom:0">
+        <div>
+          <div class="bar-chart">${barChart(sBars, maxSP, profitColor, '32px')}</div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="state-table">
+            <thead><tr>
+              <th style="text-align:left">State</th>
+              <th>Deals</th>
+              <th>Avg Profit</th>
+              <th>Avg Revenue</th>
+              <th>Total Profit</th>
+              <th>Avg Hold</th>
+            </tr></thead>
+            <tbody>${stateRows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRAM TYPE + LOAN SIZE -->
+    <div class="stats-grid-2">
+      <div class="stats-card">
+        <div class="stats-section-title">Avg Net Profit by Program Type</div>
+        <div class="bar-chart">${barChart(pBars, maxPP, profitColor, '100px')}</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-section-title">Avg Net Profit by Loan Size</div>
+        <div class="bar-chart">${barChart(lBars, maxLB, profitColor, '80px')}</div>
+        <div style="margin-top:10px;font-size:10px;color:var(--muted)">Larger loans generate more absolute profit but may have lower margin % due to higher interest costs.</div>
+      </div>
+    </div>
+
+  </div>`;
+}
+
+
+// ── PDF / PRINT ───────────────────────────────────────────
+function downloadPDF() {
+  const d = deals.find(x => x.id === activeId);
+  if (!d) return;
+  const c = compute(d);
+
+  // Build a clean self-contained print window
+  const w = window.open('', '_blank', 'width=900,height=700');
+
+  const fmtD = s => {
+    if (!s) return '—';
+    const dt = new Date(s + 'T12:00:00');
+    return dt.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  };
+
+  const sfPct = c.loan > 0 ? (c.sf / c.loan * 100).toFixed(2) + '%' : '—';
+
+  // Breakdown rows
+  const bRows = () => {
+    const row = (lbl, type, basis, amt, sub) => {
+      const color = type === 'income' ? '#16a34a' : '#dc2626';
+      const badge = type === 'income' ? 'INCOME' : 'COST';
+      const badgeColor = type === 'income' ? '#dcfce7' : '#fee2e2';
+      const badgeText = type === 'income' ? '#15803d' : '#b91c1c';
+      const subRow = sub ? `<tr><td style="padding:4px 8px 4px 30px;font-size:9px;color:#6b7280;font-style:italic" colspan="3">${sub}</td></tr>` : '';
+      return `<tr style="border-bottom:1px solid #f3f4f6">
+        <td style="padding:7px 8px;font-size:10px;color:${color}">
+          ${lbl}
+          <span style="display:inline-block;font-size:8px;padding:1px 5px;border-radius:3px;background:${badgeColor};color:${badgeText};margin-left:4px;font-weight:600;vertical-align:middle">${badge}</span>
+        </td>
+        <td style="padding:7px 8px;font-size:9px;color:#6b7280;max-width:200px">${basis}</td>
+        <td style="padding:7px 8px;font-size:10px;color:${color};text-align:right;font-weight:600;white-space:nowrap">${fmt(amt)}</td>
+      </tr>${subRow}`;
+    };
+    const subLine = (lbl, basis, amt) =>
+      `<tr style="border-bottom:1px solid #f9fafb">
+        <td style="padding:4px 8px 4px 24px;font-size:9px;color:#9ca3af">↳ ${lbl}</td>
+        <td style="padding:4px 8px;font-size:9px;color:#9ca3af">${basis}</td>
+        <td style="padding:4px 8px;font-size:10px;color:#3b82f6;text-align:right">${fmt(amt)}</td>
+      </tr>`;
+
+    let h = '';
+    h += row('PB Service Fee', 'income', `${sfPct} × ${fmt(c.loan)}`, c.sf);
+    h += subLine('New Home Deposit (upfront)', 'Collected at purchase', c.dep);
+    h += subLine('Remainder at closing', 'Collected at refi', Math.max(c.sfRem, 0));
+    h += row('Client Daily Interest', 'income', `${fmt2(c.daily)}/day × ${c.clientDays}d`, c.intRev);
+    if (c.add > 0) h += row('Additional Costs to Client', 'income', 'Extended hold or penalty', c.add);
+    if (c.disc > 0) h += row('Discount to Client', 'cost', 'Flat reduction', c.disc);
+    const fbLbl = c.pdBeforePayoff ? 'FB Paydown' : 'Payoff';
+    h += row(`First Bank LOC Interest (${c.locPct}% of loan)`, 'cost',
+      `${c.fbRate}%/yr × ${c.fbDays}d × ${fmt(c.locAmt)} (LOC→${fbLbl})`, c.fbCost,
+      c.tailDays > 0 && !c.pdBeforePayoff ? `Includes ${c.tailDays}d tail after Refi` : null);
+    const mP1Lbl = c.pdBeforeRefi ? 'FB Paydown' : 'Refi';
+    h += row(`Mezzanine Interest — Phase 1 (${c.mPct}% of loan)`, 'cost',
+      `${c.mRate}%/yr × ${c.mP1Days}d × ${fmt(c.mAmt)} (Purchase→${mP1Lbl})`, c.mC1);
+    if (c.pdBeforeRefi && c.mP2Days > 0)
+      h += row('Mezzanine Interest — Phase 2 (100% @ 12%)', 'cost',
+        `12%/yr × ${c.mP2Days}d × ${fmt(c.loan)} (Paydown→Refi)`, c.mC2,
+        'First Bank paid off — full loan at Mezzanine rate');
+    if (c.brk > 0) h += row('Broker Partner Revenue Share', 'cost', 'Flat payout', c.brk);
+    if (c.lo > 0)  h += row('Loan Officer Revenue Share',   'cost', 'Flat payout', c.lo);
+    return h;
+  };
+
+  const profitColor = c.profit >= 0 ? '#16a34a' : '#dc2626';
+  const marginPct = Math.min(Math.max(c.margin, 0), 100);
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>zavvie Deal Report — ${d.dealName}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #fff; color: #111827; font-size: 11px; }
+  @page { size: letter; margin: 0.6in 0.6in 0.7in; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+  }
+
+  /* HEADER */
+  .page-header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 16px; border-bottom: 2px solid #111827; margin-bottom: 20px; }
+  .logo-text { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: #111827; }
+  .logo-text span { color: #3b82f6; }
+  .report-meta { text-align: right; font-family: 'DM Mono', monospace; font-size: 9px; color: #6b7280; line-height: 1.6; }
+
+  /* DEAL TITLE */
+  .deal-title { margin-bottom: 18px; }
+  .deal-name { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 3px; }
+  .deal-address { font-size: 11px; color: #6b7280; }
+
+  /* METRICS GRID */
+  .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 18px; }
+  .metric-box { background: #f9fafb; padding: 12px 14px; }
+  .metric-lbl { font-family: 'DM Mono', monospace; font-size: 8px; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; margin-bottom: 3px; }
+  .metric-val { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; line-height: 1; margin-bottom: 2px; }
+  .metric-sub-text { font-size: 9px; color: #9ca3af; }
+  .val-pos { color: #16a34a; } .val-neg { color: #dc2626; } .val-neu { color: #d97706; }
+
+  /* MARGIN BAR */
+  .margin-bar-wrap { background: #f3f4f6; border-radius: 6px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .margin-bar-label { font-family: 'DM Mono', monospace; font-size: 9px; color: #9ca3af; width: 50px; }
+  .margin-bar-track { flex: 1; height: 6px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+  .margin-bar-fill { height: 100%; border-radius: 3px; background: ${c.profit >= 0 ? '#16a34a' : '#dc2626'}; width: ${marginPct}%; }
+  .margin-bar-pct { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; color: ${profitColor}; }
+
+  /* SECTION HEADER */
+  .section-hdr { font-family: 'DM Mono', monospace; font-size: 8px; text-transform: uppercase; letter-spacing: 0.14em; color: #9ca3af; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .section-hdr::before { content:''; display:block; width:4px; height:4px; border-radius:50%; background:#3b82f6; }
+
+  /* BREAKDOWN TABLE */
+  .bd-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  .bd-table thead th { font-family: 'DM Mono', monospace; font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; padding: 6px 8px; border-bottom: 2px solid #e5e7eb; text-align: left; }
+  .bd-table thead th:last-child { text-align: right; }
+  .total-row td { border-top: 2px solid #e5e7eb !important; font-weight: 700; font-size: 11px; padding-top: 8px !important; }
+
+  /* DATES */
+  .dates-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 18px; }
+  .date-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 10px; }
+  .date-lbl { font-family: 'DM Mono', monospace; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; margin-bottom: 3px; }
+  .date-val { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 500; color: #111827; }
+
+  /* DEAL INFO */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+  .info-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 10px; }
+  .info-lbl { font-family: 'DM Mono', monospace; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; margin-bottom: 2px; }
+  .info-val { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: #111827; }
+
+  /* FUNDING SPLIT */
+  .split-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .split-box { flex: 1; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px 10px; }
+  .split-box.mezz { background: #fffbeb; border-color: #fde68a; }
+  .split-lbl { font-family: 'DM Mono', monospace; font-size: 7px; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; margin-bottom: 2px; }
+  .split-val { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 600; color: #3b82f6; }
+  .split-box.mezz .split-val { color: #d97706; }
+
+  /* INTEREST PERIOD PILLS */
+  .pills-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pill { display: inline-flex; align-items: center; gap: 4px; font-family: 'DM Mono', monospace; font-size: 8px; padding: 3px 8px; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 12px; color: #6b7280; }
+  .pill-dot { width: 4px; height: 4px; border-radius: 50%; }
+
+  /* FOOTER */
+  .page-footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 8px 0.6in; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; font-family: 'DM Mono', monospace; font-size: 8px; color: #9ca3af; background: #fff; }
+
+  /* PRINT BUTTON */
+  .print-btn { position: fixed; top: 20px; right: 20px; padding: 10px 20px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(59,130,246,0.3); z-index: 999; }
+  .print-btn:hover { background: #2563eb; }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">⬇ Save as PDF</button>
+
+<div class="page-footer">
+  <span>zavvie · Unit Economics Report</span>
+  <span>Generated ${new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}</span>
+  <span>CONFIDENTIAL</span>
+</div>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div>
+    <div class="logo-text">zavvie <span>·</span> Deal Report</div>
+    <div style="font-size:10px;color:#6b7280;margin-top:2px">Unit Economics Analysis</div>
+  </div>
+  <div class="report-meta">
+    <div style="font-weight:600;color:#111827">${d.dealName}</div>
+    <div>${d.address || ''}</div>
+    <div>Generated ${new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'})}</div>
+  </div>
+</div>
+
+<!-- DEAL TITLE -->
+<div class="deal-title">
+  <div class="deal-name">${d.dealName}</div>
+  <div class="deal-address">${d.address || '—'}</div>
+</div>
+
+<!-- P&L METRICS -->
+<div class="section-hdr">P&L Summary</div>
+<div class="metrics-grid">
+  <div class="metric-box">
+    <div class="metric-lbl">Total Revenue</div>
+    <div class="metric-val val-pos">${fmt(c.totRev)}</div>
+    <div class="metric-sub-text">All client-paid fees</div>
+  </div>
+  <div class="metric-box">
+    <div class="metric-lbl">Total Costs</div>
+    <div class="metric-val val-neg">${fmt(c.totCost)}</div>
+    <div class="metric-sub-text">Interest &amp; funding costs</div>
+  </div>
+  <div class="metric-box">
+    <div class="metric-lbl">Net Profit</div>
+    <div class="metric-val" style="color:${profitColor}">${fmt(c.profit)}</div>
+    <div class="metric-sub-text">Gross margin: ${fmtPct(c.margin)}</div>
+  </div>
+  <div class="metric-box">
+    <div class="metric-lbl">Hold Period</div>
+    <div class="metric-val val-neu">${c.totalDays > 0 ? c.totalDays + 'd' : '—'}</div>
+    <div class="metric-sub-text">LOC Advance → Payoff</div>
+  </div>
+  <div class="metric-box">
+    <div class="metric-lbl">Daily Spread</div>
+    <div class="metric-val" style="color:${c.dSpread >= 0 ? '#16a34a' : '#dc2626'}">${c.totalDays > 0 ? fmt(c.dSpread) + '/day' : '—'}</div>
+    <div class="metric-sub-text">Net profit per day</div>
+  </div>
+  <div class="metric-box">
+    <div class="metric-lbl">Annualized Yield</div>
+    <div class="metric-val" style="color:${c.aYield >= 0 ? '#16a34a' : '#dc2626'}">${c.totalDays > 0 ? fmtPct(c.aYield) : '—'}</div>
+    <div class="metric-sub-text">Net profit / loan × 365/days</div>
+  </div>
+</div>
+
+<div class="margin-bar-wrap">
+  <div class="margin-bar-label">Margin</div>
+  <div class="margin-bar-track"><div class="margin-bar-fill"></div></div>
+  <div class="margin-bar-pct">${fmtPct(c.margin)}</div>
+</div>
+
+<!-- DEAL INFO GRID -->
+<div class="section-hdr">Deal Information</div>
+<div class="info-grid">
+  <div class="info-box"><div class="info-lbl">Purchase Price</div><div class="info-val">${fmt(d.purchasePrice)}</div></div>
+  <div class="info-box"><div class="info-lbl">Loan Amount</div><div class="info-val">${fmt(c.loan)}</div></div>
+  <div class="info-box"><div class="info-lbl">First Bank LOC Rate</div><div class="info-val">${c.fbRate}% / yr</div></div>
+  <div class="info-box"><div class="info-lbl">Mezzanine Rate</div><div class="info-val">${c.mRate}% / yr</div></div>
+</div>
+
+<!-- FUNDING SPLIT -->
+<div class="split-row">
+  <div class="split-box"><div class="split-lbl">First Bank LOC (${c.locPct}%)</div><div class="split-val">${fmt(c.locAmt)}</div></div>
+  <div class="split-box mezz"><div class="split-lbl">Mezzanine (${c.mPct}%)</div><div class="split-val">${fmt(c.mAmt)}</div></div>
+</div>
+
+<!-- KEY DATES -->
+<div class="section-hdr" style="margin-top:14px">Key Dates</div>
+<div class="dates-grid">
+  <div class="date-box"><div class="date-lbl">LOC Advance</div><div class="date-val">${fmtD(d.locDate)}</div></div>
+  <div class="date-box"><div class="date-lbl">Cash Purchase</div><div class="date-val">${fmtD(d.purchaseDate)}</div></div>
+  <div class="date-box"><div class="date-lbl">Refi Date</div><div class="date-val">${fmtD(d.refiDate)}</div></div>
+  <div class="date-box"><div class="date-lbl">Payoff Date</div><div class="date-val">${fmtD(d.payoffDate)}</div></div>
+</div>
+${d.paydownDate ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:8px 12px;margin-bottom:14px;font-family:'DM Mono',monospace;font-size:9px;color:#92400e">
+  ⚠ First Bank Required Paydown: ${fmtD(d.paydownDate)}${c.pdBeforeRefi ? ` · Phase 2 applies: ${c.mP2Days}d at 12% on full ${fmt(c.loan)}` : ' · Deal closed before paydown'}
+</div>` : ''}
+
+<!-- INTEREST PERIODS -->
+<div class="pills-row">
+  <div class="pill"><span class="pill-dot" style="background:#16a34a"></span>Client interest: ${c.clientDays}d (Purchase → Refi)</div>
+  <div class="pill"><span class="pill-dot" style="background:#3b82f6"></span>First Bank: ${c.fbDays}d (LOC → ${c.pdBeforePayoff ? 'Paydown' : 'Payoff'})</div>
+  <div class="pill"><span class="pill-dot" style="background:#d97706"></span>Mezz P1: ${c.mP1Days}d${c.mP2Days > 0 ? ' · P2: ' + c.mP2Days + 'd' : ''}</div>
+  ${c.tailDays > 0 ? `<div class="pill"><span class="pill-dot" style="background:#dc2626"></span>⚠ Tail: ${c.tailDays}d (Refi → Payoff)</div>` : ''}
+</div>
+
+<!-- LINE ITEM BREAKDOWN -->
+<div class="section-hdr">Line Item Breakdown</div>
+<table class="bd-table">
+  <thead>
+    <tr>
+      <th>Line Item</th>
+      <th>Basis</th>
+      <th style="text-align:right">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${bRows()}
+    <tr class="total-row">
+      <td style="padding:8px;color:#111827">Net Profit</td>
+      <td style="padding:8px;font-size:9px;color:#9ca3af">Gross margin: ${fmtPct(c.margin)}</td>
+      <td style="padding:8px;text-align:right;color:${profitColor}">${fmt(c.profit)}</td>
+    </tr>
+  </tbody>
+</table>
+
+${(c.brk > 0 || c.lo > 0) ? `<div style="margin-top:8px;padding:8px 10px;background:#f9fafb;border-radius:6px;font-size:9px;color:#6b7280">
+  Revenue shares paid: ${c.brk > 0 ? 'Broker ' + fmt(c.brk) : ''}${c.lo > 0 ? (c.brk > 0 ? ' · ' : '') + 'Loan Officer ' + fmt(c.lo) : ''}
+</div>` : ''}
+
+</body>
+</html>`;
+
+  w.document.write(html);
+  w.document.close();
+  // Slight delay so fonts load before print dialog
+  setTimeout(() => { w.focus(); }, 800);
+}
+
+</script>
+</body>
+</html>
